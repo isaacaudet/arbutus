@@ -72,6 +72,20 @@ function parseEventsForDate(icalData: string, targetDate: Date): BusyBlock[] {
   return busy;
 }
 
+// Vancouver is UTC-8 (PST) Nov–Mar, UTC-7 (PDT) Mar–Oct
+function getVancouverUtcOffset(date: Date): number {
+  const month = date.getUTCMonth(); // 0-indexed
+  return month >= 3 && month <= 10 ? -7 : -8;
+}
+
+// Create a Date whose UTC value represents a given Vancouver local h:mm
+function vancouverTime(date: Date, hour: number, minute: number): Date {
+  const offset = getVancouverUtcOffset(date);
+  const d = new Date(date);
+  d.setUTCHours(hour - offset, minute, 0, 0);
+  return d;
+}
+
 function buildSlots(
   date: Date,
   startTime: string,
@@ -83,11 +97,8 @@ function buildSlots(
   const [endHour, endMin] = endTime.split(":").map(Number);
 
   const slots: TimeSlot[] = [];
-  const cursor = new Date(date);
-  cursor.setHours(startHour, startMin, 0, 0);
-
-  const workEnd = new Date(date);
-  workEnd.setHours(endHour, endMin, 0, 0);
+  const cursor = vancouverTime(date, startHour, startMin);
+  const workEnd = vancouverTime(date, endHour, endMin);
 
   while (cursor.getTime() + slotDuration * 60_000 <= workEnd.getTime()) {
     const slotStart = new Date(cursor);
