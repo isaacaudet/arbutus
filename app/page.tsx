@@ -187,10 +187,7 @@ export default function HomePage() {
             ].map(({ n, title, desc }) => (
               <div key={n} className="flex gap-5">
                 <div className="shrink-0 w-10 h-10 rounded-full bg-brand flex items-center justify-center">
-                  <span
-                    className="text-white font-bold text-lg leading-none"
-                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-                  >
+                  <span className="text-white font-bold text-base tabular-nums">
                     {n}
                   </span>
                 </div>
