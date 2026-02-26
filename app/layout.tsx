@@ -20,9 +20,26 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL ?? "https://booking-rho-five.vercel.app"
+  ),
   title: "Arbutus — Same-day wellness in Victoria, BC",
   description:
     "Find same-day massage, physio, and chiro openings in Victoria. Real-time availability from local practitioners. Book directly, no account needed.",
+  openGraph: {
+    title: "Arbutus — Same-day wellness in Victoria, BC",
+    description:
+      "Find same-day massage, physio, and chiro openings in Victoria. Real-time availability from local practitioners.",
+    siteName: "Arbutus",
+    locale: "en_CA",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Arbutus — Same-day wellness in Victoria, BC",
+    description:
+      "Find same-day massage, physio, and chiro openings in Victoria.",
+  },
 };
 
 export default function RootLayout({
