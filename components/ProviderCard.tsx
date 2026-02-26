@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { TimeSlotChip } from "./TimeSlotChip";
 import { Provider } from "@/lib/providers";
 
@@ -49,6 +50,8 @@ const SPECIALTY_STYLES: Record<string, { dot: string; label: string; badge: stri
 };
 
 export function ProviderCard({ provider, slots, date }: ProviderCardProps) {
+  const router = useRouter();
+
   const today = new Date().toLocaleDateString("en-CA", {
     timeZone: "America/Vancouver",
   });
@@ -61,8 +64,17 @@ export function ProviderCard({ provider, slots, date }: ProviderCardProps) {
 
   const style = SPECIALTY_STYLES[provider.specialty] ?? SPECIALTY_STYLES.massage;
 
+  const cardHref = `/book/${provider.id}?date=${date}`;
+
+  const handleCardClick = () => {
+    router.push(cardHref);
+  };
+
   return (
-    <article className="group bg-white rounded-2xl border border-cream-dark hover:border-sage/30 hover:shadow-lg transition-all duration-200 overflow-hidden">
+    <article
+      onClick={handleCardClick}
+      className="group bg-white rounded-2xl border border-cream-dark hover:border-sage/30 hover:shadow-lg transition-all duration-200 overflow-hidden cursor-pointer"
+    >
       <div className="p-5 sm:p-6">
         <div className="flex gap-4">
           {/* Avatar */}
@@ -148,32 +160,28 @@ export function ProviderCard({ provider, slots, date }: ProviderCardProps) {
                   <TimeSlotChip
                     key={slot.start.toISOString()}
                     start={slot.start}
-                    bookingUrl={provider.bookingUrl}
+                    href={`/book/${provider.id}?slot=${encodeURIComponent(slot.start.toISOString())}&date=${date}`}
                     isToday={isToday}
                   />
                 ))}
                 {slotDates.length > 8 && (
-                  <a
-                    href={provider.bookingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={(e) => { e.stopPropagation(); router.push(cardHref); }}
                     className="inline-flex items-center px-3 py-1.5 rounded-full text-sm text-[#7A7A7A] border border-cream-dark bg-cream hover:bg-cream-mid hover:border-sage/30 transition-colors"
                   >
                     +{slotDates.length - 8} more
-                  </a>
+                  </button>
                 )}
               </div>
-              <a
-                href={provider.bookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-mid transition-colors"
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-brand hover:text-brand-mid transition-colors cursor-pointer"
               >
                 View all availability
                 <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
-              </a>
+              </div>
             </>
           ) : (
             <p className="text-sm text-[#ABABAB] italic">

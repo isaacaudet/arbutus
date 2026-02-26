@@ -55,10 +55,17 @@ async function SearchResults({ service, date, time }: SearchResultsProps) {
   const providers = getAllProviders().filter((p) => p.specialty === service);
   const targetDate = new Date(date + "T00:00:00");
 
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
+  const now = new Date();
+
   const results = await Promise.all(
     providers.map(async (provider) => {
       const allSlots = await getAvailableSlots(provider, targetDate);
-      const filteredSlots = filterSlotsByTime(allSlots, time, date);
+      const timeFiltered = filterSlotsByTime(allSlots, time, date);
+      // Strip slots that have already passed when viewing today
+      const filteredSlots = date === today
+        ? timeFiltered.filter((s) => s.start > now)
+        : timeFiltered;
       return { provider, slots: filteredSlots };
     })
   );

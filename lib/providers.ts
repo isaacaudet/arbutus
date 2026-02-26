@@ -35,6 +35,10 @@ export function getAllProviders(): Provider[] {
   return providersData as Provider[];
 }
 
+export function getProviderById(id: string): Provider | undefined {
+  return getAllProviders().find((p) => p.id === id);
+}
+
 export function getProvidersBySpecialty(specialty: string): Provider[] {
   return getAllProviders().filter((p) => p.specialty === specialty);
 }

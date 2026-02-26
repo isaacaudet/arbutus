@@ -4,9 +4,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const SERVICE_OPTIONS = [
-  { value: "massage", label: "Massage Therapy" },
-  { value: "physio",  label: "Physiotherapy" },
-  { value: "chiro",   label: "Chiropractic" },
+  { value: "massage", label: "Massage Therapy", short: "Massage" },
+  { value: "physio",  label: "Physiotherapy",   short: "Physio" },
+  { value: "chiro",   label: "Chiropractic",    short: "Chiro" },
 ];
 
 const TIME_OPTIONS = [
@@ -54,7 +54,7 @@ export function SearchBar({
           className="flex-1 min-w-0 px-3 py-2.5 text-xs font-medium text-brand bg-transparent border-none outline-none cursor-pointer appearance-none"
         >
           {SERVICE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
+            <option key={opt.value} value={opt.value}>{opt.short}</option>
           ))}
         </select>
 

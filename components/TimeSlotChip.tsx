@@ -1,9 +1,12 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 interface TimeSlotChipProps {
   start: Date;
-  bookingUrl: string;
+  href: string;
   isToday: boolean;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 function formatTime(date: Date): string {
@@ -15,9 +18,13 @@ function formatTime(date: Date): string {
   });
 }
 
-export function TimeSlotChip({ start, bookingUrl, isToday }: TimeSlotChipProps) {
-  const handleClick = () => {
-    window.open(bookingUrl, "_blank", "noopener,noreferrer");
+export function TimeSlotChip({ start, href, isToday, onClick }: TimeSlotChipProps) {
+  const router = useRouter();
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onClick?.(e);
+    router.push(href);
   };
 
   return (
