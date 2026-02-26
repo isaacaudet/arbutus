@@ -21,7 +21,7 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL ?? "https://booking-rho-five.vercel.app"
+    process.env.NEXT_PUBLIC_BASE_URL ?? "https://arbutus.vercel.app"
   ),
   title: "Arbutus — Same-day wellness in Victoria, BC",
   description:
