@@ -1,0 +1,117 @@
+[
+  {
+    "id": "sarah-chen",
+    "name": "Sarah Chen",
+    "title": "Registered Massage Therapist",
+    "specialty": "massage",
+    "rating": 4.9,
+    "reviewCount": 127,
+    "neighborhood": "Downtown Victoria",
+    "bio": "Deep tissue and relaxation massage specialist. 8 years of experience helping clients with chronic pain, sports injuries, and stress relief.",
+    "imageUrl": "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face",
+    "icalUrl": "PLACEHOLDER_ICAL_URL_1",
+    "bookingUrl": "https://example.com/book/sarah-chen",
+    "slotDuration": 60,
+    "workingHours": {
+      "monday":    { "start": "09:00", "end": "18:00" },
+      "tuesday":   { "start": "09:00", "end": "18:00" },
+      "wednesday": { "start": "10:00", "end": "19:00" },
+      "thursday":  { "start": "09:00", "end": "18:00" },
+      "friday":    { "start": "09:00", "end": "17:00" },
+      "saturday":  { "start": "10:00", "end": "15:00" },
+      "sunday":    null
+    }
+  },
+  {
+    "id": "marcus-williams",
+    "name": "Marcus Williams",
+    "title": "Physiotherapist",
+    "specialty": "physio",
+    "rating": 4.8,
+    "reviewCount": 94,
+    "neighborhood": "Oak Bay",
+    "bio": "Specializing in post-surgery rehabilitation and sports performance. Combines manual therapy with targeted exercise programming.",
+    "imageUrl": "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face",
+    "icalUrl": "PLACEHOLDER_ICAL_URL_2",
+    "bookingUrl": "https://example.com/book/marcus-williams",
+    "slotDuration": 45,
+    "workingHours": {
+      "monday":    { "start": "08:00", "end": "17:00" },
+      "tuesday":   { "start": "08:00", "end": "17:00" },
+      "wednesday": { "start": "08:00", "end": "17:00" },
+      "thursday":  { "start": "08:00", "end": "17:00" },
+      "friday":    { "start": "08:00", "end": "15:00" },
+      "saturday":  null,
+      "sunday":    null
+    }
+  },
+  {
+    "id": "priya-sharma",
+    "name": "Priya Sharma",
+    "title": "Registered Massage Therapist",
+    "specialty": "massage",
+    "rating": 5.0,
+    "reviewCount": 43,
+    "neighborhood": "Fernwood",
+    "bio": "Specializing in prenatal massage, lymphatic drainage, and hot stone therapy. Gentle approach for those new to massage.",
+    "imageUrl": "https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=400&h=400&fit=crop&crop=face",
+    "icalUrl": "PLACEHOLDER_ICAL_URL_3",
+    "bookingUrl": "https://example.com/book/priya-sharma",
+    "slotDuration": 60,
+    "workingHours": {
+      "monday":    null,
+      "tuesday":   { "start": "11:00", "end": "19:00" },
+      "wednesday": { "start": "11:00", "end": "19:00" },
+      "thursday":  { "start": "11:00", "end": "19:00" },
+      "friday":    { "start": "11:00", "end": "19:00" },
+      "saturday":  { "start": "10:00", "end": "16:00" },
+      "sunday":    { "start": "11:00", "end": "15:00" }
+    }
+  },
+  {
+    "id": "david-okafor",
+    "name": "David Okafor",
+    "title": "Chiropractor",
+    "specialty": "chiro",
+    "rating": 4.7,
+    "reviewCount": 211,
+    "neighborhood": "Saanich",
+    "bio": "Focused on spinal health, posture correction, and headache relief. Evidence-based chiropractic care for the whole family.",
+    "imageUrl": "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=400&h=400&fit=crop&crop=face",
+    "icalUrl": "PLACEHOLDER_ICAL_URL_4",
+    "bookingUrl": "https://example.com/book/david-okafor",
+    "slotDuration": 30,
+    "workingHours": {
+      "monday":    { "start": "09:00", "end": "18:00" },
+      "tuesday":   { "start": "09:00", "end": "18:00" },
+      "wednesday": { "start": "09:00", "end": "18:00" },
+      "thursday":  { "start": "09:00", "end": "18:00" },
+      "friday":    { "start": "09:00", "end": "16:00" },
+      "saturday":  { "start": "09:00", "end": "13:00" },
+      "sunday":    null
+    }
+  },
+  {
+    "id": "elena-petrov",
+    "name": "Elena Petrov",
+    "title": "Registered Massage Therapist",
+    "specialty": "massage",
+    "rating": 4.6,
+    "reviewCount": 78,
+    "neighborhood": "James Bay",
+    "bio": "Swedish and therapeutic massage for relaxation and pain management. Fluent in English and Russian.",
+    "imageUrl": "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&h=400&fit=crop&crop=face",
+    "icalUrl": "PLACEHOLDER_ICAL_URL_5",
+    "bookingUrl": "https://example.com/book/elena-petrov",
+    "slotDuration": 60,
+    "workingHours": {
+      "monday":    { "start": "10:00", "end": "18:00" },
+      "tuesday":   { "start": "10:00", "end": "18:00" },
+      "wednesday": null,
+      "thursday":  { "start": "10:00", "end": "18:00" },
+      "friday":    { "start": "10:00", "end": "18:00" },
+      "saturday":  { "start": "09:00", "end": "14:00" },
+      "sunday":    null
+    }
+  }
+]
