@@ -3,11 +3,12 @@ import { SearchBar } from "@/components/SearchBar";
 import { EmptyState } from "@/components/EmptyState";
 import { SearchLayout, SerializedResult } from "@/components/SearchLayout";
 import { Provider } from "@/lib/providers";
-import { searchPractitioners, getMarketplaceOpenings, buildBounds } from "@/lib/marketplace";
+import { searchPractitioners, getMarketplaceOpenings } from "@/lib/marketplace";
 
-// Jane App Marketplace covers North Shore BC + Squamish BC
+// Jane App Marketplace — max valid bounds for North Shore / Squamish BC.
+// Box span must be ≤ 1.0° longitude; bottom must be ≥ 49.14°N (API constraint).
 const MARKETPLACE_CENTER = { lat: 49.3201, lng: -123.0724 };
-const MARKETPLACE_RADIUS_KM = 20;
+const MARKETPLACE_BOUNDS = { top: 49.7, right: -122.57, bottom: 49.14, left: -123.57 };
 
 const DISCIPLINE_MAP: Record<string, string> = {
   massage: "massage_therapy",
@@ -69,10 +70,9 @@ interface SearchResultsProps {
 async function SearchResults({ service, time }: SearchResultsProps) {
   const discipline = DISCIPLINE_MAP[service] ?? "massage_therapy";
   const { lat, lng } = MARKETPLACE_CENTER;
-  const bounds = buildBounds(lat, lng, MARKETPLACE_RADIUS_KM);
   const now = new Date();
 
-  const practitioners = await searchPractitioners(lat, lng, bounds, discipline, 30);
+  const practitioners = await searchPractitioners(lat, lng, MARKETPLACE_BOUNDS, discipline, 100);
   console.log(`[search] ${discipline} practitioners: ${practitioners.length}`);
 
   if (practitioners.length === 0) {
@@ -89,9 +89,27 @@ async function SearchResults({ service, time }: SearchResultsProps) {
     practitioners.map(async (p) => {
       // clinicLocationGuid is "clinic-loc" e.g. "3856-1" — extract numeric loc ID
       const locId = parseInt(p.clinicLocationGuid.split("-").pop() ?? "1", 10);
-      const allSlots = await getMarketplaceOpenings(p.staffMemberGuid, locId);
-      const future = allSlots.filter((s) => s.start > now);
-      const filtered = filterSlotsByTime(future, time);
+
+      // /openings only returns slots in a short near-term window.
+      // Only call it for practitioners with a firstOpening within 7 days —
+      // they'll have multiple slots worth showing. Everyone else gets
+      // firstOpening used directly as a single chip (no extra HTTP call).
+      const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+      const firstOpeningDate = p.firstOpening ? new Date(p.firstOpening.startAt) : null;
+      const isNearTerm = firstOpeningDate && (firstOpeningDate.getTime() - now.getTime()) < SEVEN_DAYS;
+
+      let filtered: { start: Date; end: Date }[] = [];
+      if (isNearTerm) {
+        const allSlots = await getMarketplaceOpenings(p.staffMemberGuid, locId);
+        const future = allSlots.filter((s) => s.start > now);
+        filtered = filterSlotsByTime(future, time);
+      }
+
+      // Fallback to firstOpening as a single representative chip
+      if (filtered.length === 0 && firstOpeningDate && firstOpeningDate > now) {
+        const firstEnd = new Date(firstOpeningDate.getTime() + 60 * 60 * 1000);
+        filtered = filterSlotsByTime([{ start: firstOpeningDate, end: firstEnd }], time);
+      }
 
       // Determine specialty from disciplines array
       const specialty = p.practitionerDisciplines.some((d) => d.includes("massage"))
