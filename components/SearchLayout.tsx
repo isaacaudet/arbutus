@@ -137,49 +137,26 @@ export function SearchLayout({ results, date }: SearchLayoutProps) {
               ))}
 
               {withNoSlots.length > 0 && (
-                <div className="pt-4 border-t border-cream-dark">
-                  <p className="text-xs text-[#ABABAB] uppercase tracking-widest font-medium mb-3">
+                <div className="mt-8 pt-6 border-t border-cream-dark">
+                  <p className="text-xs text-[#ABABAB] uppercase tracking-widest font-medium mb-4">
                     No slots in this window
                   </p>
-                  <div className="space-y-3">
+                  <div className="space-y-4 opacity-60">
                     {withNoSlots.map(({ provider }, i) => (
                       <div
                         key={provider.id}
                         ref={(el) => { cardRefs.current[withSlots.length + i] = el; }}
-                        className={`flex items-center gap-3 p-4 rounded-xl bg-cream-mid border transition-all ${
+                        className={`rounded-2xl ring-2 transition-all duration-150 ${
                           activeId === provider.id
-                            ? "border-coral/40 ring-1 ring-coral/30"
+                            ? "ring-coral/50"
                             : hoveredId === provider.id
-                            ? "border-sage/40"
-                            : "border-cream-dark"
-                        } opacity-60`}
+                            ? "ring-sage/40"
+                            : "ring-transparent"
+                        }`}
                         onMouseEnter={() => setHoveredId(provider.id)}
                         onMouseLeave={() => setHoveredId(null)}
                       >
-                        <img
-                          src={provider.imageUrl}
-                          alt={provider.name}
-                          className="w-10 h-10 rounded-xl object-cover bg-cream-dark"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p
-                            className="font-display text-base font-medium text-brand truncate"
-                            style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-                          >
-                            {provider.name}
-                          </p>
-                          <p className="text-xs text-[#9A9A9A]">
-                            {provider.neighborhood} · {provider.title}
-                          </p>
-                        </div>
-                        <a
-                          href={provider.bookingUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-brand hover:underline shrink-0"
-                        >
-                          Check schedule →
-                        </a>
+                        <ProviderCard provider={provider} slots={[]} date={date} />
                       </div>
                     ))}
                   </div>

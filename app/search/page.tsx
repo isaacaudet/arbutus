@@ -4,6 +4,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { SearchLayout, SerializedResult } from "@/components/SearchLayout";
 import { getAllProviders } from "@/lib/providers";
 import { getAvailableSlots } from "@/lib/ical";
+import { getJaneOpenings } from "@/lib/janeapp";
 
 // Time window filtering
 const TIME_WINDOWS: Record<string, { start: number; end: number }> = {
@@ -60,7 +61,24 @@ async function SearchResults({ service, date, time }: SearchResultsProps) {
 
   const results = await Promise.all(
     providers.map(async (provider) => {
-      const allSlots = await getAvailableSlots(provider, targetDate);
+      let allSlots: { start: Date; end: Date }[];
+      if (provider.jane) {
+        try {
+          allSlots = await getJaneOpenings(
+            provider.jane.subdomain,
+            provider.jane.staffMemberId,
+            provider.jane.treatmentId,
+            provider.jane.locationId,
+            date,
+            1
+          );
+        } catch {
+          // Jane App unavailable — fall back to working-hours estimate
+          allSlots = await getAvailableSlots(provider, targetDate);
+        }
+      } else {
+        allSlots = await getAvailableSlots(provider, targetDate);
+      }
       const timeFiltered = filterSlotsByTime(allSlots, time, date);
       const filteredSlots = date === today
         ? timeFiltered.filter((s) => s.start > now)

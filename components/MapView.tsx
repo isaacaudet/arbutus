@@ -3,7 +3,6 @@
 import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
 import { Provider } from "@/lib/providers";
 
 const BRAND_GREEN = "#1C3829";
