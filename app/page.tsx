@@ -68,7 +68,7 @@ export default function HomePage() {
           {/* Eyebrow */}
           <div className="opacity-0-init animate-fade-up inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#D4EDE5] bg-[#EBF6F1] text-brand text-xs font-semibold tracking-wide mb-7">
             <span className="w-1.5 h-1.5 rounded-full bg-[#34A86C] animate-pulse" />
-            Live availability · Victoria, BC
+            Live availability · Metro Vancouver, BC
           </div>
 
           {/* Headline — Playfair Display 800 = strong and editorial */}
@@ -118,7 +118,7 @@ export default function HomePage() {
           >
             Browse by specialty
           </h2>
-          <span className="text-sm text-[#9A9A9A] hidden sm:block">Victoria, BC</span>
+          <span className="text-sm text-[#9A9A9A] hidden sm:block">Metro Vancouver, BC</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

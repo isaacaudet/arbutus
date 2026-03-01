@@ -5,10 +5,14 @@ import { SearchLayout, SerializedResult } from "@/components/SearchLayout";
 import { Provider } from "@/lib/providers";
 import { searchPractitioners, getMarketplaceOpenings } from "@/lib/marketplace";
 
-// Jane App Marketplace — max valid bounds for North Shore / Squamish BC.
-// Box span must be ≤ 1.0° longitude; bottom must be ≥ 49.14°N (API constraint).
-const MARKETPLACE_CENTER = { lat: 49.3201, lng: -123.0724 };
-const MARKETPLACE_BOUNDS = { top: 49.7, right: -122.57, bottom: 49.14, left: -123.57 };
+// Jane App Marketplace covers all Jane App clinics in Metro Vancouver.
+// API constraints: box span ≤ 1.0° longitude, bottom ≥ 49.14°N.
+// We run 3 overlapping searches and deduplicate to maximise coverage.
+const SEARCH_ZONES = [
+  { lat: 49.32, lng: -123.07, bounds: { top: 49.7, right: -122.57, bottom: 49.14, left: -123.57 } }, // North Shore + West Van
+  { lat: 49.25, lng: -123.0,  bounds: { top: 49.7, right: -122.5,  bottom: 49.14, left: -123.5  } }, // Vancouver + Burnaby
+  { lat: 49.25, lng: -122.7,  bounds: { top: 49.6, right: -122.2,  bottom: 49.14, left: -123.2  } }, // East Van + Coquitlam
+];
 
 const DISCIPLINE_MAP: Record<string, string> = {
   massage: "massage_therapy",
@@ -69,10 +73,18 @@ interface SearchResultsProps {
 
 async function SearchResults({ service, time }: SearchResultsProps) {
   const discipline = DISCIPLINE_MAP[service] ?? "massage_therapy";
-  const { lat, lng } = MARKETPLACE_CENTER;
   const now = new Date();
 
-  const practitioners = await searchPractitioners(lat, lng, MARKETPLACE_BOUNDS, discipline, 100);
+  // Run 3 parallel zone searches and deduplicate by staffMemberGuid
+  const zoneResults = await Promise.all(
+    SEARCH_ZONES.map(({ lat, lng, bounds }) => searchPractitioners(lat, lng, bounds, discipline, 100))
+  );
+  const seen = new Set<string>();
+  const practitioners = zoneResults.flat().filter((p) => {
+    if (seen.has(p.staffMemberGuid)) return false;
+    seen.add(p.staffMemberGuid);
+    return true;
+  });
   console.log(`[search] ${discipline} practitioners: ${practitioners.length}`);
 
   if (practitioners.length === 0) {
@@ -225,7 +237,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 {SERVICE_LABELS[service] ?? service}
               </h1>
               <p className="text-sm text-[#7A7A7A] mt-1">
-                Upcoming availability · {TIME_LABELS[time] ?? time} · North Shore, BC
+                Upcoming availability · {TIME_LABELS[time] ?? time} · Metro Vancouver, BC
               </p>
             </div>
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sage/10 border border-sage/20 text-brand text-xs font-medium shrink-0">
