@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 interface TimeSlotChipProps {
   start: Date;
   href: string;
+  external?: boolean;
   onClick?: (e: React.MouseEvent) => void;
 }
 
@@ -28,7 +29,7 @@ function formatSlotLabel(date: Date, isToday: boolean): string {
   return `${dayMonth} · ${formatTime(date)}`;
 }
 
-export function TimeSlotChip({ start, href, onClick }: TimeSlotChipProps) {
+export function TimeSlotChip({ start, href, external, onClick }: TimeSlotChipProps) {
   const router = useRouter();
 
   const todayStr = new Date().toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
@@ -38,7 +39,11 @@ export function TimeSlotChip({ start, href, onClick }: TimeSlotChipProps) {
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClick?.(e);
-    router.push(href);
+    if (external) {
+      window.open(href, "_blank", "noopener,noreferrer");
+    } else {
+      router.push(href);
+    }
   };
 
   return (

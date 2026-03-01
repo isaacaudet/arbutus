@@ -65,10 +65,16 @@ export function ProviderCard({ provider, slots, date }: ProviderCardProps) {
 
   const style = SPECIALTY_STYLES[provider.specialty] ?? SPECIALTY_STYLES.massage;
 
-  const cardHref = `/book/${provider.id}?date=${date}`;
+  // Marketplace providers book externally; internal booking page only for iCal/Jane direct
+  const isExternal = !!provider.marketplace;
+  const cardHref = isExternal ? provider.bookingUrl : `/book/${provider.id}?date=${date}`;
 
   const handleCardClick = () => {
-    router.push(cardHref);
+    if (isExternal) {
+      window.open(cardHref, "_blank", "noopener,noreferrer");
+    } else {
+      router.push(cardHref);
+    }
   };
 
   return (
@@ -117,8 +123,12 @@ export function ProviderCard({ provider, slots, date }: ProviderCardProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-3 mt-2.5">
-              <StarRating rating={provider.rating} reviewCount={provider.reviewCount} />
-              <span className="text-[#D0CCC5]">·</span>
+              {provider.rating > 0 && (
+                <>
+                  <StarRating rating={provider.rating} reviewCount={provider.reviewCount} />
+                  <span className="text-[#D0CCC5]">·</span>
+                </>
+              )}
               <span className="text-sm text-[#7A7A7A] flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -161,7 +171,8 @@ export function ProviderCard({ provider, slots, date }: ProviderCardProps) {
                   <TimeSlotChip
                     key={slot.start.toISOString()}
                     start={slot.start}
-                    href={`/book/${provider.id}?slot=${encodeURIComponent(slot.start.toISOString())}&date=${date}`}
+                    href={isExternal ? provider.bookingUrl : `/book/${provider.id}?slot=${encodeURIComponent(slot.start.toISOString())}&date=${date}`}
+                    external={isExternal}
                   />
                 ))}
                 {slotDates.length > 8 && (

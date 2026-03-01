@@ -2,23 +2,30 @@ import { Suspense } from "react";
 import { SearchBar } from "@/components/SearchBar";
 import { EmptyState } from "@/components/EmptyState";
 import { SearchLayout, SerializedResult } from "@/components/SearchLayout";
-import { getAllProviders } from "@/lib/providers";
-import { getAvailableSlots } from "@/lib/ical";
-import { getJaneOpenings } from "@/lib/janeapp";
-import { getMarketplaceOpenings } from "@/lib/marketplace";
+import { Provider } from "@/lib/providers";
+import { searchPractitioners, getMarketplaceOpenings, buildBounds } from "@/lib/marketplace";
 
-// Time window filtering
-const TIME_WINDOWS: Record<string, { start: number; end: number }> = {
-  any:       { start: 0,  end: 24 },
-  morning:   { start: 6,  end: 12 },
-  afternoon: { start: 12, end: 17 },
-  evening:   { start: 17, end: 21 },
+// Jane App Marketplace covers North Shore BC + Squamish BC
+const MARKETPLACE_CENTER = { lat: 49.3201, lng: -123.0724 };
+const MARKETPLACE_RADIUS_KM = 20;
+
+const DISCIPLINE_MAP: Record<string, string> = {
+  massage: "massage_therapy",
+  physio:  "physiotherapy",
+  chiro:   "chiropractic",
 };
 
 const SERVICE_LABELS: Record<string, string> = {
   massage: "Massage Therapy",
   physio:  "Physiotherapy",
   chiro:   "Chiropractic",
+};
+
+const TIME_WINDOWS: Record<string, { start: number; end: number }> = {
+  any:       { start: 0,  end: 24 },
+  morning:   { start: 6,  end: 12 },
+  afternoon: { start: 12, end: 17 },
+  evening:   { start: 17, end: 21 },
 };
 
 const TIME_LABELS: Record<string, string> = {
@@ -28,13 +35,12 @@ const TIME_LABELS: Record<string, string> = {
   evening:   "Evening · 5pm–9pm",
 };
 
-// Uses each slot's own date for correct DST-aware hour extraction
 function filterSlotsByTime(
   slots: { start: Date; end: Date }[],
   time: string,
 ): { start: Date; end: Date }[] {
-  const window = TIME_WINDOWS[time] ?? TIME_WINDOWS.any;
   if (time === "any") return slots;
+  const window = TIME_WINDOWS[time] ?? TIME_WINDOWS.any;
   return slots.filter((slot) => {
     const hour = parseInt(
       slot.start.toLocaleTimeString("en-CA", {
@@ -48,73 +54,96 @@ function filterSlotsByTime(
   });
 }
 
+function disciplineToTitle(discipline: string): string {
+  if (discipline.includes("massage")) return "Registered Massage Therapist";
+  if (discipline.includes("physio"))  return "Physiotherapist";
+  if (discipline.includes("chiro"))   return "Chiropractor";
+  return "Practitioner";
+}
+
 interface SearchResultsProps {
   service: string;
-  date: string;
   time: string;
 }
 
-async function SearchResults({ service, date, time }: SearchResultsProps) {
-  const providers = getAllProviders().filter((p) => p.specialty === service);
-  const targetDate = new Date(date + "T00:00:00");
+async function SearchResults({ service, time }: SearchResultsProps) {
+  const discipline = DISCIPLINE_MAP[service] ?? "massage_therapy";
+  const { lat, lng } = MARKETPLACE_CENTER;
+  const bounds = buildBounds(lat, lng, MARKETPLACE_RADIUS_KM);
   const now = new Date();
 
+  const practitioners = await searchPractitioners(lat, lng, bounds, discipline, 30);
+
+  if (practitioners.length === 0) {
+    return (
+      <EmptyState
+        service={service}
+        date={new Date().toLocaleDateString("en-CA", { timeZone: "America/Vancouver" })}
+        time={time}
+      />
+    );
+  }
+
   const results = await Promise.all(
-    providers.map(async (provider) => {
-      let allSlots: { start: Date; end: Date }[];
-      if (provider.marketplace) {
-        // Marketplace returns upcoming slots across multiple days — no date filter
-        allSlots = await getMarketplaceOpenings(
-          provider.marketplace.staffMemberGuid,
-          provider.marketplace.locationId
-        );
-      } else if (provider.jane) {
-        try {
-          allSlots = await getJaneOpenings(
-            provider.jane.subdomain,
-            provider.jane.staffMemberId,
-            provider.jane.treatmentId,
-            provider.jane.locationId,
-            date,
-            1
-          );
-        } catch {
-          allSlots = await getAvailableSlots(provider, targetDate);
-        }
-      } else {
-        allSlots = await getAvailableSlots(provider, targetDate);
-      }
-      // Always filter out past slots, then apply time-of-day preference
+    practitioners.map(async (p) => {
+      // clinicLocationGuid is "clinic-loc" e.g. "3856-1" — extract numeric loc ID
+      const locId = parseInt(p.clinicLocationGuid.split("-").pop() ?? "1", 10);
+      const allSlots = await getMarketplaceOpenings(p.staffMemberGuid, locId);
       const future = allSlots.filter((s) => s.start > now);
-      const filteredSlots = filterSlotsByTime(future, time);
-      console.log(`[search] ${provider.id}: raw=${allSlots.length} future=${future.length} filtered=${filteredSlots.length}`);
-      return { provider, slots: filteredSlots };
+      const filtered = filterSlotsByTime(future, time);
+
+      // Determine specialty from disciplines array
+      const specialty = p.practitionerDisciplines.some((d) => d.includes("massage"))
+        ? "massage"
+        : p.practitionerDisciplines.some((d) => d.includes("physio"))
+        ? "physio"
+        : p.practitionerDisciplines.some((d) => d.includes("chiro"))
+        ? "chiro"
+        : service;
+
+      // Map to Provider shape — real name/photo/bio from marketplace
+      const provider: Provider = {
+        id: p.staffMemberGuid,
+        name: p.fullName,
+        title: disciplineToTitle(p.practitionerDisciplines[0] ?? discipline),
+        specialty,
+        rating: 0,
+        reviewCount: 0,
+        neighborhood: p.clinicName,
+        lat: p.locationCoordinates.latitude,
+        lng: p.locationCoordinates.longitude,
+        bio: p.description ?? "",
+        imageUrl: p.photo ?? "",
+        icalUrl: "",
+        bookingUrl: p.clinicBookingUrl,
+        slotDuration: 60,
+        marketplace: { staffMemberGuid: p.staffMemberGuid, locationId: locId },
+        workingHours: {
+          monday: null, tuesday: null, wednesday: null, thursday: null,
+          friday: null, saturday: null, sunday: null,
+        },
+      };
+
+      return {
+        provider,
+        slots: filtered.map((s) => ({ start: s.start.toISOString(), end: s.end.toISOString() })),
+      };
     })
   );
 
-  const sorted = results
-    .filter((r) => r.slots.length > 0)
-    .sort((a, b) => {
-      const aFirst = a.slots[0]?.start.getTime() ?? Infinity;
-      const bFirst = b.slots[0]?.start.getTime() ?? Infinity;
-      return aFirst - bFirst;
-    });
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
 
+  const withSlots = results
+    .filter((r) => r.slots.length > 0)
+    .sort((a, b) => new Date(a.slots[0].start).getTime() - new Date(b.slots[0].start).getTime());
   const withNoSlots = results.filter((r) => r.slots.length === 0);
 
-  if (sorted.length === 0 && withNoSlots.length === 0) {
-    return <EmptyState service={service} date={date} time={time} />;
-  }
-
   const serialized: SerializedResult[] = [
-    ...sorted.map(({ provider, slots }) => ({
-      provider,
-      slots: slots.map((s) => ({ start: s.start.toISOString(), end: s.end.toISOString() })),
-    })),
-    ...withNoSlots.map(({ provider }) => ({ provider, slots: [] })),
+    ...withSlots,
+    ...withNoSlots,
   ];
 
-  return <SearchLayout results={serialized} date={date} />;
+  return <SearchLayout results={serialized} date={today} />;
 }
 
 function ProviderCardSkeleton() {
@@ -142,7 +171,6 @@ function ProviderCardSkeleton() {
 interface SearchPageProps {
   searchParams: Promise<{
     service?: string;
-    date?: string;
     time?: string;
   }>;
 }
@@ -150,22 +178,7 @@ interface SearchPageProps {
 export default async function SearchPage({ searchParams }: SearchPageProps) {
   const params = await searchParams;
   const service = params.service ?? "massage";
-  const date =
-    params.date ??
-    new Date().toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
   const time = params.time ?? "any";
-
-  const displayDate = new Date(date + "T12:00:00").toLocaleDateString("en-CA", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-
-  const today = new Date().toLocaleDateString("en-CA", {
-    timeZone: "America/Vancouver",
-  });
-  const isToday = date === today;
 
   return (
     <div className="min-h-screen bg-cream">
@@ -174,7 +187,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
           <SearchBar
             initialService={service}
-            initialDate={date}
+            initialDate={new Date().toLocaleDateString("en-CA", { timeZone: "America/Vancouver" })}
             initialTime={time}
             compact
           />
@@ -193,15 +206,13 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
                 {SERVICE_LABELS[service] ?? service}
               </h1>
               <p className="text-sm text-[#7A7A7A] mt-1">
-                {isToday ? "Today, " : ""}{displayDate} · {TIME_LABELS[time] ?? time} · Victoria, BC
+                Upcoming availability · {TIME_LABELS[time] ?? time} · North Shore, BC
               </p>
             </div>
-            {isToday && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-coral/10 border border-coral/20 text-coral text-xs font-medium shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-coral animate-pulse" />
-                Today
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sage/10 border border-sage/20 text-brand text-xs font-medium shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-sage animate-pulse" />
+              Live
+            </span>
           </div>
 
           {/* Time filter pills */}
@@ -209,7 +220,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             {Object.entries(TIME_LABELS).map(([key, label]) => {
               const shortLabel = label.split(" · ")[0];
               const isActive = time === key;
-              const href = `/search?${new URLSearchParams({ service, date, time: key })}`;
+              const href = `/search?${new URLSearchParams({ service, time: key })}`;
               return (
                 <a
                   key={key}
@@ -232,7 +243,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           fallback={
             <div className="lg:flex lg:gap-6">
               <div className="lg:w-[55%] space-y-4">
-                {[...Array(3)].map((_, i) => (
+                {[...Array(5)].map((_, i) => (
                   <ProviderCardSkeleton key={i} />
                 ))}
               </div>
@@ -242,7 +253,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
             </div>
           }
         >
-          <SearchResults service={service} date={date} time={time} />
+          <SearchResults service={service} time={time} />
         </Suspense>
       </main>
     </div>

@@ -12,7 +12,7 @@ const MapView = dynamic(
   { ssr: false, loading: () => <div className="h-full bg-cream-mid animate-pulse rounded-2xl" /> }
 );
 
-const VICTORIA_CENTER = { lat: 48.4284, lng: -123.3656 };
+const NORTH_SHORE_CENTER = { lat: 49.3201, lng: -123.0724 };
 
 export interface SerializedResult {
   provider: Provider;
@@ -34,7 +34,7 @@ export function SearchLayout({ results, date }: SearchLayoutProps) {
 
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const center = userLocation ?? VICTORIA_CENTER;
+  const center = userLocation ?? NORTH_SHORE_CENTER;
 
   // Client-side radius filter (only when user location is set)
   const filteredResults = userLocation
