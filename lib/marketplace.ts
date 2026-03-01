@@ -45,6 +45,7 @@ export async function searchPractitioners(
   // Use undici directly — Next.js patches globalThis.fetch which breaks the
   // TLS fingerprint, causing the marketplace WAF to return 403.
   const body = JSON.stringify({ maxResults, boundingBox: bounds, discipline, latitude: lat, longitude: lng });
+  console.log(`[marketplace] POST body: ${body.slice(0, 200)}`);
 
   let res: Awaited<ReturnType<typeof undiciFetch>>;
   try {
@@ -59,7 +60,11 @@ export async function searchPractitioners(
   }
 
   console.log(`[marketplace] search ${discipline} → HTTP ${res.status}`);
-  if (!res.ok) return [];
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error(`[marketplace] search ${discipline} error body:`, errText.slice(0, 300));
+    return [];
+  }
 
   const data = await res.json() as { results?: MarketplacePractitioner[] };
   const result: MarketplacePractitioner[] = data.results ?? [];
