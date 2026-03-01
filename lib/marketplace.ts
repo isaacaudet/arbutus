@@ -40,7 +40,7 @@ export async function searchPractitioners(
 ): Promise<MarketplacePractitioner[]> {
   const key = `${lat.toFixed(4)}:${lng.toFixed(4)}:${discipline}`;
   const hit = searchCache.get(key);
-  if (hit && Date.now() - hit.t < CACHE_TTL) return hit.data;
+  if (hit && hit.data.length > 0 && Date.now() - hit.t < CACHE_TTL) return hit.data;
 
   // Use undici directly — Next.js patches globalThis.fetch which breaks the
   // TLS fingerprint, causing the marketplace WAF to return 403.
