@@ -72,17 +72,21 @@ export async function getMarketplaceOpenings(
 ): Promise<TimeSlot[]> {
   const key = `${staffMemberGuid}:${locationId}`;
   const hit = openingsCache.get(key);
-  if (hit && Date.now() - hit.t < CACHE_TTL) return hit.data;
+  // Only use cache if result is non-empty (avoid serving stale empty arrays)
+  if (hit && hit.data.length > 0 && Date.now() - hit.t < CACHE_TTL) return hit.data;
 
   const res = await fetch(
     `${API}/practitioners/${staffMemberGuid}/location/${locationId}/openings`,
     {
       headers: { Origin: ORIGIN },
-      next: { revalidate: 300 },
+      cache: "no-store", // always fresh — API says no-cache anyway
     }
   );
 
-  if (!res.ok) return [];
+  if (!res.ok) {
+    console.warn(`[marketplace] openings fetch failed: ${res.status} for ${staffMemberGuid}/${locationId}`);
+    return [];
+  }
 
   const data = await res.json();
   const slots: TimeSlot[] = (data.openings ?? []).map(
@@ -91,6 +95,7 @@ export async function getMarketplaceOpenings(
       end: new Date(o.end),
     })
   );
+  console.log(`[marketplace] ${staffMemberGuid}/${locationId} → ${slots.length} slots`);
   openingsCache.set(key, { data: slots, t: Date.now() });
   return slots;
 }

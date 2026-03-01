@@ -57,6 +57,7 @@ export function ProviderCard({ provider, slots, date }: ProviderCardProps) {
   });
   const isToday = date === today;
 
+  // For marketplace multi-day slots, check if any slot is actually today
   const slotDates = slots.map((s) => ({
     start: new Date(s.start),
     end: new Date(s.end),
@@ -90,7 +91,7 @@ export function ProviderCard({ provider, slots, date }: ProviderCardProps) {
                   `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23E5E0D6'/%3E%3Ccircle cx='40' cy='28' r='13' fill='%23A8C4B8'/%3E%3Cellipse cx='40' cy='60' rx='20' ry='13' fill='%23A8C4B8'/%3E%3C/svg%3E`;
               }}
             />
-            {isToday && slotDates.length > 0 && (
+            {slotDates.some((s) => s.start.toLocaleDateString("en-CA", { timeZone: "America/Vancouver" }) === today) && (
               <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-coral border-2 border-white" />
             )}
           </div>
@@ -143,9 +144,9 @@ export function ProviderCard({ provider, slots, date }: ProviderCardProps) {
             <>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-xs font-medium text-[#9A9A9A] uppercase tracking-widest">
-                  Open slots
+                  Upcoming slots
                 </span>
-                {isToday && (
+                {slotDates.some((s) => s.start.toLocaleDateString("en-CA", { timeZone: "America/Vancouver" }) === today) && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-coral/10 text-coral border border-coral/20">
                     <span className="w-1 h-1 rounded-full bg-coral" />
                     Today
@@ -161,7 +162,6 @@ export function ProviderCard({ provider, slots, date }: ProviderCardProps) {
                     key={slot.start.toISOString()}
                     start={slot.start}
                     href={`/book/${provider.id}?slot=${encodeURIComponent(slot.start.toISOString())}&date=${date}`}
-                    isToday={isToday}
                   />
                 ))}
                 {slotDates.length > 8 && (

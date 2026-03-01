@@ -28,23 +28,24 @@ const TIME_LABELS: Record<string, string> = {
   evening:   "Evening · 5pm–9pm",
 };
 
+// Uses each slot's own date for correct DST-aware hour extraction
 function filterSlotsByTime(
   slots: { start: Date; end: Date }[],
   time: string,
-  date: string
 ): { start: Date; end: Date }[] {
   const window = TIME_WINDOWS[time] ?? TIME_WINDOWS.any;
+  if (time === "any") return slots;
   return slots.filter((slot) => {
-    const slotHour = slot.start.getUTCHours() + getVancouverOffset(date);
-    const normalizedHour = ((slotHour % 24) + 24) % 24;
-    return normalizedHour >= window.start && normalizedHour < window.end;
+    const hour = parseInt(
+      slot.start.toLocaleTimeString("en-CA", {
+        hour: "numeric",
+        hour12: false,
+        timeZone: "America/Vancouver",
+      }),
+      10
+    );
+    return hour >= window.start && hour < window.end;
   });
-}
-
-function getVancouverOffset(dateStr: string): number {
-  const date = new Date(dateStr + "T12:00:00Z");
-  const month = date.getUTCMonth();
-  return month >= 3 && month <= 9 ? -7 : -8;
 }
 
 interface SearchResultsProps {
@@ -56,22 +57,16 @@ interface SearchResultsProps {
 async function SearchResults({ service, date, time }: SearchResultsProps) {
   const providers = getAllProviders().filter((p) => p.specialty === service);
   const targetDate = new Date(date + "T00:00:00");
-
-  const today = new Date().toLocaleDateString("en-CA", { timeZone: "America/Vancouver" });
   const now = new Date();
 
   const results = await Promise.all(
     providers.map(async (provider) => {
       let allSlots: { start: Date; end: Date }[];
       if (provider.marketplace) {
-        // Marketplace API — real slots, no treatment ID needed
+        // Marketplace returns upcoming slots across multiple days — no date filter
         allSlots = await getMarketplaceOpenings(
           provider.marketplace.staffMemberGuid,
           provider.marketplace.locationId
-        );
-        // Filter to requested date (marketplace returns upcoming days)
-        allSlots = allSlots.filter((s) =>
-          s.start.toLocaleDateString("en-CA", { timeZone: "America/Vancouver" }) === date
         );
       } else if (provider.jane) {
         try {
@@ -89,10 +84,10 @@ async function SearchResults({ service, date, time }: SearchResultsProps) {
       } else {
         allSlots = await getAvailableSlots(provider, targetDate);
       }
-      const timeFiltered = filterSlotsByTime(allSlots, time, date);
-      const filteredSlots = date === today
-        ? timeFiltered.filter((s) => s.start > now)
-        : timeFiltered;
+      // Always filter out past slots, then apply time-of-day preference
+      const future = allSlots.filter((s) => s.start > now);
+      const filteredSlots = filterSlotsByTime(future, time);
+      console.log(`[search] ${provider.id}: raw=${allSlots.length} future=${future.length} filtered=${filteredSlots.length}`);
       return { provider, slots: filteredSlots };
     })
   );
