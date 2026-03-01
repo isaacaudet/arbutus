@@ -9,16 +9,12 @@ const BRAND_GREEN = "#1C3829";
 const CORAL = "#C8694B";
 
 function makeIcon(color: string, large = false) {
-  const w = large ? 32 : 24;
-  const h = large ? 48 : 36;
+  const size = large ? 14 : 10;
   return L.divIcon({
-    html: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 24 36" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.25));display:block">
-      <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 24 12 24S24 21 24 12C24 5.373 18.627 0 12 0z" fill="${color}" stroke="white" stroke-width="1.5"/>
-      <circle cx="12" cy="12" r="5" fill="white"/>
-    </svg>`,
-    iconSize: [w, h],
-    iconAnchor: [w / 2, h],
-    popupAnchor: [0, -h],
+    html: `<div style="width:${size * 2}px;height:${size * 2}px;border-radius:50%;background:${color};box-shadow:0 1px 4px rgba(0,0,0,.35),0 0 0 2px ${color === CORAL ? "rgba(200,105,75,.25)" : "rgba(28,56,41,.2)"};"></div>`,
+    iconSize: [size * 2, size * 2],
+    iconAnchor: [size, size],
+    popupAnchor: [0, -(size + 4)],
     className: "",
   });
 }

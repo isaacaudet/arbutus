@@ -48,6 +48,17 @@ export function SearchBar({
   if (compact) {
     return (
       <div className="flex items-center gap-0 bg-white rounded-xl border border-cream-dark overflow-hidden w-full">
+        {/* Location — static for now, North Shore BC only */}
+        <div className="flex items-center gap-1.5 px-3 py-2.5 shrink-0">
+          <svg className="w-3 h-3 text-[#9A9A9A]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="text-xs font-medium text-brand whitespace-nowrap">North Shore, BC</span>
+        </div>
+
+        <div className="w-px h-5 bg-cream-dark shrink-0" />
+
         <select
           value={service}
           onChange={(e) => setService(e.target.value)}
@@ -57,16 +68,6 @@ export function SearchBar({
             <option key={opt.value} value={opt.value}>{opt.short}</option>
           ))}
         </select>
-
-        <div className="w-px h-5 bg-cream-dark shrink-0" />
-
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          min={todayVictoria()}
-          className="flex-1 min-w-0 px-3 py-2.5 text-xs font-medium text-brand bg-transparent border-none outline-none cursor-pointer"
-        />
 
         <div className="w-px h-5 bg-cream-dark shrink-0" />
 
@@ -98,6 +99,20 @@ export function SearchBar({
     <div
       className="flex flex-col sm:flex-row items-stretch bg-white rounded-2xl overflow-hidden border border-cream-dark shadow-[0_4px_24px_rgba(28,56,41,0.08)] hover:shadow-[0_4px_32px_rgba(28,56,41,0.12)] transition-shadow duration-200 max-w-3xl w-full mx-auto"
     >
+      {/* Location */}
+      <div className="flex-1 border-b sm:border-b-0 sm:border-r border-cream-dark">
+        <label className="block px-4 sm:px-5 pt-3 pb-0.5 text-[10px] font-semibold text-[#9A9A9A] uppercase tracking-widest">
+          Location
+        </label>
+        <div className="flex items-center gap-2 px-4 sm:px-5 pb-3">
+          <svg className="w-3.5 h-3.5 text-[#9A9A9A] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="text-sm font-medium text-brand">North Shore, BC</span>
+        </div>
+      </div>
+
       {/* Service */}
       <div className="flex-1 border-b sm:border-b-0 sm:border-r border-cream-dark group">
         <label className="block px-4 sm:px-5 pt-3 pb-0.5 text-[10px] font-semibold text-[#9A9A9A] uppercase tracking-widest">
@@ -114,20 +129,6 @@ export function SearchBar({
             </option>
           ))}
         </select>
-      </div>
-
-      {/* Date */}
-      <div className="flex-1 border-b sm:border-b-0 sm:border-r border-cream-dark">
-        <label className="block px-4 sm:px-5 pt-3 pb-0.5 text-[10px] font-semibold text-[#9A9A9A] uppercase tracking-widest">
-          Date
-        </label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          min={todayVictoria()}
-          className="w-full px-4 sm:px-5 pb-3 text-sm font-medium text-brand bg-transparent border-none outline-none cursor-pointer"
-        />
       </div>
 
       {/* Time */}

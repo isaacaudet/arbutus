@@ -1,5 +1,5 @@
 import { TimeSlot } from "./providers";
-import { fetch as undiciFetch } from "undici";
+import { request as undiciRequest } from "undici";
 
 const API = "https://marketplace-api.janeapp.net";
 const ORIGIN = "https://discover.jane.app";
@@ -42,31 +42,38 @@ export async function searchPractitioners(
   const hit = searchCache.get(key);
   if (hit && hit.data.length > 0 && Date.now() - hit.t < CACHE_TTL) return hit.data;
 
-  // Use undici directly — Next.js patches globalThis.fetch which breaks the
-  // TLS fingerprint, causing the marketplace WAF to return 403.
-  const body = JSON.stringify({ maxResults, boundingBox: bounds, discipline, latitude: lat, longitude: lng });
-  console.log(`[marketplace] POST body: ${body.slice(0, 200)}`);
+  // Use undici.request() directly to bypass Next.js fetch patching.
+  // The marketplace WAF checks User-Agent + Accept headers, so we include them.
+  const reqBody = JSON.stringify({ maxResults, boundingBox: bounds, discipline, latitude: lat, longitude: lng });
+  console.log(`[marketplace] POST body: ${reqBody.slice(0, 200)}`);
 
-  let res: Awaited<ReturnType<typeof undiciFetch>>;
+  let statusCode: number;
+  let responseBody: Awaited<ReturnType<typeof undiciRequest>>["body"];
   try {
-    res = await undiciFetch(`${API}/practitioners/search`, {
+    ({ statusCode, body: responseBody } = await undiciRequest(`${API}/practitioners/search`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Origin: ORIGIN },
-      body,
-    });
+      headers: {
+        "content-type": "application/json",
+        "origin": ORIGIN,
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      },
+      body: reqBody,
+    }));
   } catch (err) {
     console.error("[marketplace] searchPractitioners error:", err);
     return [];
   }
 
-  console.log(`[marketplace] search ${discipline} → HTTP ${res.status}`);
-  if (!res.ok) {
-    const errText = await res.text();
+  console.log(`[marketplace] search ${discipline} → HTTP ${statusCode}`);
+  if (statusCode < 200 || statusCode >= 300) {
+    const errText = await responseBody.text();
     console.error(`[marketplace] search ${discipline} error body:`, errText.slice(0, 300));
     return [];
   }
 
-  const data = await res.json() as { results?: MarketplacePractitioner[] };
+  const data = await responseBody.json() as { results?: MarketplacePractitioner[] };
   const result: MarketplacePractitioner[] = data.results ?? [];
   console.log(`[marketplace] search ${discipline} → ${result.length} practitioners`);
   searchCache.set(key, { data: result, t: Date.now() });
@@ -86,22 +93,33 @@ export async function getMarketplaceOpenings(
   // Only use cache if result is non-empty (avoid serving stale empty arrays)
   if (hit && hit.data.length > 0 && Date.now() - hit.t < CACHE_TTL) return hit.data;
 
-  const res = await fetch(
-    `${API}/practitioners/${staffMemberGuid}/location/${locationId}/openings`,
-    {
-      headers: { Origin: ORIGIN },
-      cache: "no-store", // always fresh — API says no-cache anyway
-    }
-  );
-
-  if (!res.ok) {
-    console.warn(`[marketplace] openings fetch failed: ${res.status} for ${staffMemberGuid}/${locationId}`);
+  let openStatusCode: number;
+  let openBody: Awaited<ReturnType<typeof undiciRequest>>["body"];
+  try {
+    ({ statusCode: openStatusCode, body: openBody } = await undiciRequest(
+      `${API}/practitioners/${staffMemberGuid}/location/${locationId}/openings`,
+      {
+        headers: {
+          "origin": ORIGIN,
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+      }
+    ));
+  } catch (err) {
+    console.warn(`[marketplace] openings fetch error for ${staffMemberGuid}/${locationId}:`, err);
     return [];
   }
 
-  const data = await res.json();
+  if (openStatusCode < 200 || openStatusCode >= 300) {
+    console.warn(`[marketplace] openings fetch failed: ${openStatusCode} for ${staffMemberGuid}/${locationId}`);
+    return [];
+  }
+
+  const data = await openBody.json() as { openings?: { start: string; end: string }[] };
   const slots: TimeSlot[] = (data.openings ?? []).map(
-    (o: { start: string; end: string }) => ({
+    (o) => ({
       start: new Date(o.start),
       end: new Date(o.end),
     })
@@ -143,10 +161,11 @@ export function buildBounds(
 ): { top: number; right: number; bottom: number; left: number } {
   const latDeg = radiusKm / 111;
   const lngDeg = radiusKm / (111 * Math.cos((lat * Math.PI) / 180));
+  const round2 = (n: number) => Math.round(n * 100) / 100;
   return {
-    top: lat + latDeg,
-    right: lng + lngDeg,
-    bottom: lat - latDeg,
-    left: lng - lngDeg,
+    top: round2(lat + latDeg),
+    right: round2(lng + lngDeg),
+    bottom: round2(lat - latDeg),
+    left: round2(lng - lngDeg),
   };
 }
