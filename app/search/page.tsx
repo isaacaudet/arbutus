@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { SearchBar } from "@/components/SearchBar";
-import { ProviderCard } from "@/components/ProviderCard";
 import { EmptyState } from "@/components/EmptyState";
+import { SearchLayout, SerializedResult } from "@/components/SearchLayout";
 import { getAllProviders } from "@/lib/providers";
 import { getAvailableSlots } from "@/lib/ical";
 
@@ -62,7 +62,6 @@ async function SearchResults({ service, date, time }: SearchResultsProps) {
     providers.map(async (provider) => {
       const allSlots = await getAvailableSlots(provider, targetDate);
       const timeFiltered = filterSlotsByTime(allSlots, time, date);
-      // Strip slots that have already passed when viewing today
       const filteredSlots = date === today
         ? timeFiltered.filter((s) => s.start > now)
         : timeFiltered;
@@ -80,65 +79,19 @@ async function SearchResults({ service, date, time }: SearchResultsProps) {
 
   const withNoSlots = results.filter((r) => r.slots.length === 0);
 
-  if (sorted.length === 0) {
+  if (sorted.length === 0 && withNoSlots.length === 0) {
     return <EmptyState service={service} date={date} time={time} />;
   }
 
-  return (
-    <div className="space-y-4">
-      {sorted.map(({ provider, slots }) => (
-        <ProviderCard
-          key={provider.id}
-          provider={provider}
-          slots={slots.map((s) => ({
-            start: s.start.toISOString(),
-            end: s.end.toISOString(),
-          }))}
-          date={date}
-        />
-      ))}
+  const serialized: SerializedResult[] = [
+    ...sorted.map(({ provider, slots }) => ({
+      provider,
+      slots: slots.map((s) => ({ start: s.start.toISOString(), end: s.end.toISOString() })),
+    })),
+    ...withNoSlots.map(({ provider }) => ({ provider, slots: [] })),
+  ];
 
-      {/* Providers with no slots in this window */}
-      {withNoSlots.length > 0 && (
-        <div className="mt-8 pt-6 border-t border-cream-dark">
-          <p className="text-xs text-[#ABABAB] uppercase tracking-widest font-medium mb-4">
-            No slots in this window
-          </p>
-          <div className="space-y-3">
-            {withNoSlots.map(({ provider }) => (
-              <div
-                key={provider.id}
-                className="flex items-center gap-3 p-4 rounded-xl bg-cream-mid border border-cream-dark opacity-60"
-              >
-                <img
-                  src={provider.imageUrl}
-                  alt={provider.name}
-                  className="w-10 h-10 rounded-xl object-cover bg-cream-dark"
-                />
-                <div className="flex-1 min-w-0">
-                  <p
-                    className="font-display text-base font-medium text-brand truncate"
-                    style={{ fontFamily: "var(--font-cormorant), Georgia, serif" }}
-                  >
-                    {provider.name}
-                  </p>
-                  <p className="text-xs text-[#9A9A9A]">{provider.neighborhood} · {provider.title}</p>
-                </div>
-                <a
-                  href={provider.bookingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-brand hover:underline shrink-0"
-                >
-                  Check schedule →
-                </a>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  return <SearchLayout results={serialized} date={date} />;
 }
 
 function ProviderCardSkeleton() {
@@ -195,7 +148,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     <div className="min-h-screen bg-cream">
       {/* Sticky search refinement bar */}
       <div className="sticky top-16 z-40 bg-cream/95 backdrop-blur-md border-b border-cream-dark">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
           <SearchBar
             initialService={service}
             initialDate={date}
@@ -205,9 +158,9 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         </div>
       </div>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {/* Results header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1
@@ -251,13 +204,18 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
           </div>
         </div>
 
-        {/* Results */}
+        {/* Results with map */}
         <Suspense
           fallback={
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <ProviderCardSkeleton key={i} />
-              ))}
+            <div className="lg:flex lg:gap-6">
+              <div className="lg:w-[55%] space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <ProviderCardSkeleton key={i} />
+                ))}
+              </div>
+              <div className="hidden lg:block lg:w-[45%]">
+                <div className="h-[600px] rounded-2xl bg-cream-mid animate-pulse" />
+              </div>
             </div>
           }
         >

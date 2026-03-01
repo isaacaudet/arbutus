@@ -10,11 +10,20 @@ export interface Provider {
   rating: number;
   reviewCount: number;
   neighborhood: string;
+  lat: number;
+  lng: number;
   bio: string;
   imageUrl: string;
   icalUrl: string;
   bookingUrl: string;
   slotDuration: number;
+  // Jane App direct API config (replaces iCal when present)
+  jane?: {
+    subdomain: string;    // e.g. "organicwellness"
+    locationId: number;
+    staffMemberId: number;
+    treatmentId: number;
+  };
   workingHours: {
     monday: DayHours;
     tuesday: DayHours;
