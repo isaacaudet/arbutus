@@ -1,4 +1,5 @@
 import { TimeSlot } from "./providers";
+import { request as httpsRequest } from "https";
 
 const API = "https://marketplace-api.janeapp.net";
 const ORIGIN = "https://discover.jane.app";
@@ -41,29 +42,44 @@ export async function searchPractitioners(
   const hit = searchCache.get(key);
   if (hit && Date.now() - hit.t < CACHE_TTL) return hit.data;
 
-  let res: Response;
+  // Use Node.js https directly — Next.js patches globalThis.fetch and
+  // overwrites the Origin header, causing the marketplace API to reject the request.
+  const body = JSON.stringify({ maxResults, boundingBox: bounds, discipline, latitude: lat, longitude: lng });
+
+  let statusCode = 0;
+  let rawData = "";
   try {
-    res = await fetch(`${API}/practitioners/search`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Origin: ORIGIN },
-      body: JSON.stringify({
-        maxResults,
-        boundingBox: bounds,
-        discipline,
-        latitude: lat,
-        longitude: lng,
-      }),
-      cache: "no-store",
+    await new Promise<void>((resolve, reject) => {
+      const req = httpsRequest(
+        {
+          hostname: "marketplace-api.janeapp.net",
+          path: "/practitioners/search",
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Origin": ORIGIN,
+            "Content-Length": Buffer.byteLength(body),
+          },
+        },
+        (res) => {
+          statusCode = res.statusCode ?? 0;
+          res.on("data", (chunk) => { rawData += chunk; });
+          res.on("end", resolve);
+        }
+      );
+      req.on("error", reject);
+      req.write(body);
+      req.end();
     });
   } catch (err) {
-    console.error("[marketplace] searchPractitioners fetch error:", err);
+    console.error("[marketplace] searchPractitioners error:", err);
     return [];
   }
 
-  console.log(`[marketplace] search ${discipline} → HTTP ${res.status}`);
-  if (!res.ok) return [];
+  console.log(`[marketplace] search ${discipline} → HTTP ${statusCode}`);
+  if (statusCode < 200 || statusCode >= 300) return [];
 
-  const data = await res.json();
+  const data = JSON.parse(rawData);
   const result: MarketplacePractitioner[] = data.results ?? [];
   console.log(`[marketplace] search ${discipline} → ${result.length} practitioners`);
   searchCache.set(key, { data: result, t: Date.now() });
