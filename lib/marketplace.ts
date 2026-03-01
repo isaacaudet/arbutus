@@ -41,23 +41,31 @@ export async function searchPractitioners(
   const hit = searchCache.get(key);
   if (hit && Date.now() - hit.t < CACHE_TTL) return hit.data;
 
-  const res = await fetch(`${API}/practitioners/search`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Origin: ORIGIN },
-    body: JSON.stringify({
-      maxResults,
-      boundingBox: bounds,
-      discipline,
-      latitude: lat,
-      longitude: lng,
-    }),
-    next: { revalidate: 300 },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API}/practitioners/search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: ORIGIN },
+      body: JSON.stringify({
+        maxResults,
+        boundingBox: bounds,
+        discipline,
+        latitude: lat,
+        longitude: lng,
+      }),
+      cache: "no-store",
+    });
+  } catch (err) {
+    console.error("[marketplace] searchPractitioners fetch error:", err);
+    return [];
+  }
 
-  if (!res.ok) return []; // 400 = unsupported region, fail silently
+  console.log(`[marketplace] search ${discipline} → HTTP ${res.status}`);
+  if (!res.ok) return [];
 
   const data = await res.json();
   const result: MarketplacePractitioner[] = data.results ?? [];
+  console.log(`[marketplace] search ${discipline} → ${result.length} practitioners`);
   searchCache.set(key, { data: result, t: Date.now() });
   return result;
 }

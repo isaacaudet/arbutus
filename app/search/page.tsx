@@ -73,6 +73,7 @@ async function SearchResults({ service, time }: SearchResultsProps) {
   const now = new Date();
 
   const practitioners = await searchPractitioners(lat, lng, bounds, discipline, 30);
+  console.log(`[search] ${discipline} practitioners: ${practitioners.length}`);
 
   if (practitioners.length === 0) {
     return (
