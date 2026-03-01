@@ -5,6 +5,7 @@ import { SearchLayout, SerializedResult } from "@/components/SearchLayout";
 import { getAllProviders } from "@/lib/providers";
 import { getAvailableSlots } from "@/lib/ical";
 import { getJaneOpenings } from "@/lib/janeapp";
+import { getMarketplaceOpenings } from "@/lib/marketplace";
 
 // Time window filtering
 const TIME_WINDOWS: Record<string, { start: number; end: number }> = {
@@ -62,7 +63,17 @@ async function SearchResults({ service, date, time }: SearchResultsProps) {
   const results = await Promise.all(
     providers.map(async (provider) => {
       let allSlots: { start: Date; end: Date }[];
-      if (provider.jane) {
+      if (provider.marketplace) {
+        // Marketplace API — real slots, no treatment ID needed
+        allSlots = await getMarketplaceOpenings(
+          provider.marketplace.staffMemberGuid,
+          provider.marketplace.locationId
+        );
+        // Filter to requested date (marketplace returns upcoming days)
+        allSlots = allSlots.filter((s) =>
+          s.start.toLocaleDateString("en-CA", { timeZone: "America/Vancouver" }) === date
+        );
+      } else if (provider.jane) {
         try {
           allSlots = await getJaneOpenings(
             provider.jane.subdomain,
@@ -73,7 +84,6 @@ async function SearchResults({ service, date, time }: SearchResultsProps) {
             1
           );
         } catch {
-          // Jane App unavailable — fall back to working-hours estimate
           allSlots = await getAvailableSlots(provider, targetDate);
         }
       } else {

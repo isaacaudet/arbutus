@@ -24,6 +24,11 @@ export interface Provider {
     staffMemberId: number;
     treatmentId: number;
   };
+  // Jane Marketplace config — preferred over `jane` when present
+  marketplace?: {
+    staffMemberGuid: string; // e.g. "3856-136"
+    locationId: number;      // e.g. 1
+  };
   workingHours: {
     monday: DayHours;
     tuesday: DayHours;
